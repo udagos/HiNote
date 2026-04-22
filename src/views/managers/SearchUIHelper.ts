@@ -41,7 +41,8 @@ export class SearchUIHelper {
             { prefix: 'all:', description: t('search-prefix-all') },
             { prefix: 'path:', description: t('search-prefix-path') },
             { prefix: 'hicard:', description: t('search-prefix-hicard') },
-            { prefix: 'comment:', description: t('search-prefix-comment') }
+            { prefix: 'comment:', description: t('search-prefix-comment') },
+            { prefix: 'color:', description: t('search-prefix-color') }
         ];
         
         // 创建提示项

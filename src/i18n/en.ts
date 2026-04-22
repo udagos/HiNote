@@ -257,6 +257,7 @@ export default {
     "search-prefix-hicard": "match flashcards only",
     "search-prefix-comment": "match with comments only",
     "search-prefix-path": "match path of the file",
+    "search-prefix-color": "Search by color",
 
     // 其他
 

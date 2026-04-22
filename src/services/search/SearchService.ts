@@ -28,10 +28,11 @@ export class SearchService {
         const isHiCardSearch = normalizedInput.startsWith('hicard:');
         const isCommentSearch = normalizedInput.startsWith('comment:');
         const isPathSearch = normalizedInput.startsWith('path:');
-        
+        const isColorSearch = normalizedInput.startsWith('color:');
+
         let searchType = '';
         let searchTerm = normalizedInput;
-        
+
         if (isGlobalSearch) {
             searchType = 'all';
             searchTerm = normalizedInput.substring(4).trim();
@@ -44,6 +45,9 @@ export class SearchService {
         } else if (isPathSearch) {
             searchType = 'path';
             searchTerm = normalizedInput.substring(5).trim();
+        } else if (isColorSearch) {
+            searchType = 'color';
+            searchTerm = normalizedInput.substring(6).trim();
         }
         
         return { searchTerm, searchType };
@@ -72,7 +76,12 @@ export class SearchService {
         if (searchType === 'comment') {
             return this.filterByComment(highlights, searchTerm, currentFile);
         }
-        
+
+        // 如果是搜索颜色
+        if (searchType === 'color') {
+            return this.filterByColor(highlights, searchTerm);
+        }
+
         // 常规搜索逻辑
         return this.filterByGeneral(highlights, searchTerm, currentFile);
     }
@@ -161,6 +170,24 @@ export class SearchService {
         });
     }
     
+    /**
+     * 按颜色过滤高亮
+     */
+    private filterByColor(highlights: HighlightInfo[], searchTerm: string): HighlightInfo[] {
+        if (!searchTerm || searchTerm.trim() === '') {
+            return highlights;
+        }
+
+        const lowerSearchTerm = searchTerm.toLowerCase();
+
+        return highlights.filter(highlight => {
+            if (!highlight.backgroundColor) {
+                return false;
+            }
+            return highlight.backgroundColor.toLowerCase() === lowerSearchTerm;
+        });
+    }
+
     /**
      * 常规搜索过滤
      */

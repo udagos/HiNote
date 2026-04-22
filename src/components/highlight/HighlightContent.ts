@@ -114,15 +114,48 @@ export class HighlightContent extends Component {
         } else {
             // 全局搜索结果或主视图添加特殊样式类
             textContent.addClass('global-search-highlight');
-            
+
             // 移除可能存在的提示文本
             textContent.removeAttribute('aria-label');
-            
+
             // 添加提示性鼠标样式
             textContent.style.cursor = 'default';
         }
+
+        // 添加颜色标签
+        if (this.highlight.backgroundColor) {
+            const tagsContainer = this.container.createEl("div", {
+                cls: "highlight-tags-container"
+            });
+
+            const colorTag = tagsContainer.createEl("div", {
+                cls: "highlight-color-tag",
+                attr: {
+                    'aria-label': t('search-prefix-color'),
+                    'title': t('search-prefix-color')
+                }
+            });
+
+            // 设置颜色标签背景色
+            colorTag.style.backgroundColor = this.highlight.backgroundColor;
+
+            // 添加点击事件触发过滤
+            colorTag.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // 查找全局搜索输入框
+                const searchInput = document.querySelector('.highlight-search-input') as HTMLInputElement;
+                if (searchInput) {
+                    searchInput.value = `color:${this.highlight.backgroundColor} `;
+                    searchInput.focus();
+                    // 触发 input 事件以通知 SearchUIManager
+                    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        }
     }
-    
+
     /**
      * 激活内部链接，添加悬停预览和点击跳转功能
      * @param element 包含链接的元素

@@ -264,6 +264,7 @@ export default {
     "search-prefix-hicard": "只搜索闪卡高亮",
     "search-prefix-comment": "只搜索带批注的高亮",
     "search-prefix-path": "按文件路径搜索高亮",
+    "search-prefix-color": "按颜色搜索",
 
     // 其他
 

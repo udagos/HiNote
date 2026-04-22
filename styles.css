@@ -4592,3 +4592,24 @@ border-color: var(--interactive-accent);
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+/* 高亮颜色标签容器 */
+.highlight-tags-container {
+    display: flex;
+    margin-top: 4px;
+    gap: 4px;
+    margin-left: 8px; /* 匹配文本装饰器的对齐 */
+}
+
+/* 高亮颜色标签 */
+.highlight-color-tag {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--background-modifier-border);
+    transition: transform 0.1s ease;
+}
+
+.highlight-color-tag:hover {
+    transform: scale(1.1);
+}
