@@ -142,7 +142,7 @@ export default {
 //CommentView
 
     "Loading...": "Loading...",
-    "Search...": "Search...",
+    "Search...": "Search highlight or comment (can search by color:#HEX)...",
     "No matching content found.": "No matching content found.",
     "The current document has no highlighted content.": "The current document has no highlighted content.",
     "No corresponding file found.": "No corresponding file found.",

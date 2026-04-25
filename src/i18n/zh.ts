@@ -142,7 +142,7 @@ export default {
     //CommentView
 
     "Loading...": "加载中...",
-    "Search...": "搜索高亮或评论...",
+    "Search...": "搜索高亮或评论（可通过 color:#HEX 搜索颜色）...",
     "No matching content found.": "未找到匹配的内容。",
     "The current document has no highlighted content.": "当前文档没有高亮内容。",
     "No corresponding file found.": "未找到相应的文件。",
