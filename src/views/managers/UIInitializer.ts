@@ -14,6 +14,7 @@ export interface UIElements {
     searchInput: HTMLInputElement;
     searchLoadingIndicator: HTMLElement;
     iconButtonsContainer: HTMLElement;
+    colorTagsContainer: HTMLElement;
     highlightContainer: HTMLElement;
     loadingIndicator: HTMLElement;
 }
@@ -71,6 +72,11 @@ export class UIInitializer {
             cls: "highlight-search-icons"
         });
 
+        // 创建颜色标签容器
+        const colorTagsContainer = searchContainer.createEl("div", {
+            cls: "highlight-color-tags-container"
+        });
+
         // 创建高亮容器
         const highlightContainer = mainContentContainer.createEl("div", {
             cls: "highlight-container"
@@ -89,6 +95,7 @@ export class UIInitializer {
             searchInput,
             searchLoadingIndicator,
             iconButtonsContainer,
+            colorTagsContainer,
             highlightContainer,
             loadingIndicator
         };

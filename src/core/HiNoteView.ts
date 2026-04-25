@@ -258,7 +258,8 @@ export class HiNoteView extends ItemView {
             this.plugin,
             this.searchInput,
             this.searchLoadingIndicator,
-            this.searchContainer
+            this.searchContainer,
+            uiElements.colorTagsContainer
         );
         
         // 使用 CallbackConfigurator 配置搜索 UI 管理器回调
@@ -1087,6 +1088,11 @@ export class HiNoteView extends ItemView {
             this.flashcardViewManager.updateFlashcardMarkers(this.state.highlights);
         }
         
+        // 刷新颜色标签
+        if (this.searchUIManager) {
+            this.searchUIManager.refreshColorTags();
+        }
+
         // 检查搜索框是否有内容
         if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchUIManager) {
             // 如果有搜索内容，使用搜索管理器过滤

@@ -22,7 +22,8 @@ export class SearchUIManager {
     private isSearching: boolean = false;
     private uiHelper: SearchUIHelper;
     private searchService: SearchService;
-    
+    private colorTagsContainer: HTMLElement | undefined;
+
     // 防抖时间配置
     private readonly localSearchDebounceTime = 200; // 本地搜索防抖时间（毫秒）
     private readonly globalSearchDebounceTime = 500; // 全局搜索防抖时间（毫秒）
@@ -36,13 +37,15 @@ export class SearchUIManager {
         plugin: CommentPlugin,
         searchInput: HTMLInputElement,
         searchLoadingIndicator: HTMLElement,
-        searchContainer: HTMLElement
+        searchContainer: HTMLElement,
+        colorTagsContainer?: HTMLElement
     ) {
         this.plugin = plugin;
         this.searchInput = searchInput;
         this.searchLoadingIndicator = searchLoadingIndicator;
         this.uiHelper = new SearchUIHelper(searchInput, searchContainer);
         this.searchService = new SearchService(plugin);
+        this.colorTagsContainer = colorTagsContainer;
     }
     
     /**
@@ -59,9 +62,62 @@ export class SearchUIManager {
     }
     
     /**
+     * 更新颜色标签
+     */
+    private updateColorTags() {
+        if (!this.colorTagsContainer) return;
+
+        const highlights = this.getHighlightsCallback();
+        if (!highlights || highlights.length === 0) {
+            this.colorTagsContainer.empty();
+            return;
+        }
+
+        // 收集所有颜色
+        const colors = new Set<string>();
+        highlights.forEach(h => {
+            if (h.backgroundColor) {
+                colors.add(h.backgroundColor);
+            }
+        });
+
+        // 更新容器
+        this.colorTagsContainer.empty();
+        if (colors.size > 0 && this.colorTagsContainer) {
+            colors.forEach(color => {
+                const colorTag = this.colorTagsContainer!.createEl("div", {
+                    cls: "highlight-color-tag",
+                    attr: {
+                        'title': `按颜色搜索`
+                    }
+                });
+                colorTag.style.backgroundColor = color;
+
+                colorTag.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.searchInput.value = `color:${color} `;
+                    this.searchInput.focus();
+                    this.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            });
+        }
+    }
+
+    /**
+     * 重新提取所有的颜色标签，需要暴露给外面让外部可以在高亮更新时调用
+     */
+    public refreshColorTags() {
+        this.updateColorTags();
+    }
+
+    /**
      * 初始化搜索功能
      */
     initialize() {
+        // 初始更新颜色标签
+        setTimeout(() => this.updateColorTags(), 0);
+
         // 添加焦点事件
         this.searchInput.addEventListener('focus', () => {
             this.uiHelper.showSearchPrefixHints();
