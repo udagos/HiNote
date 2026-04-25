@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "PowerShell(Compress-Archive -Path hi-note -DestinationPath hi-note.zip -Force)"
     ]
   }
 }
