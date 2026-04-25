@@ -22,21 +22,24 @@ export class ExportManager {
      * 创建导出按钮
      * @param container 按钮容器
      * @param getCurrentFile 获取当前文件的回调
+     * @param getFilteredHighlights 获取当前展示的过滤后高亮回调
      */
     createExportButton(
         container: HTMLElement,
-        getCurrentFile: () => TFile | null
+        getCurrentFile: () => TFile | null,
+        getFilteredHighlights?: () => HighlightInfo[]
     ): HTMLElement {
         this.exportButton = container.createEl("div", {
             cls: "highlight-icon-button"
         });
-        
+
         setIcon(this.exportButton, "file-symlink");
         this.exportButton.setAttribute("aria-label", t("Export as notes"));
 
         // 添加导出按钮点击事件
         this.exportButton.addEventListener("click", async () => {
-            await this.handleExportClick(getCurrentFile());
+            const filteredHighlights = getFilteredHighlights ? getFilteredHighlights() : undefined;
+            await this.handleExportClick(getCurrentFile(), filteredHighlights);
         });
 
         return this.exportButton;
@@ -45,15 +48,16 @@ export class ExportManager {
     /**
      * 处理导出按钮点击
      * @param currentFile 当前文件
+     * @param filteredHighlights 当前过滤出的高亮列表（如果有）
      */
-    private async handleExportClick(currentFile: TFile | null): Promise<void> {
+    private async handleExportClick(currentFile: TFile | null, filteredHighlights?: HighlightInfo[]): Promise<void> {
         if (!currentFile) {
             new Notice(t("Please open a file first."));
             return;
         }
 
         try {
-            const newFile = await this.exportService.exportHighlightsToNote(currentFile);
+            const newFile = await this.exportService.exportHighlightsToNote(currentFile, filteredHighlights);
             new Notice(t("Successfully exported highlights to: ") + newFile.path);
             
             // 打开新创建的文件

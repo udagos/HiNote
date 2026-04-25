@@ -125,23 +125,34 @@ export class ExportService {
     /**
      * 导出文件的高亮和评论内容为新的笔记
      * @param sourceFile 源文件
+     * @param filteredHighlights 过滤后的高亮（如果有提供，则只导出这部分）
      * @returns 返回创建的新文件
      */
-    async exportHighlightsToNote(sourceFile: TFile): Promise<TFile> {
+    async exportHighlightsToNote(sourceFile: TFile, filteredHighlights?: HighlightInfo[]): Promise<TFile> {
         // 获取文件的所有高亮和评论
-        const highlights = await this.getFileHighlights(sourceFile);
+        let highlights = await this.getFileHighlights(sourceFile);
+
+        // 如果有过滤条件，则根据条件筛选需要导出的高亮
+        if (filteredHighlights && filteredHighlights.length > 0) {
+            const filteredIds = new Set(filteredHighlights.map(h => h.id));
+            highlights = highlights.filter(h => filteredIds.has(h.id));
+        }
+
         if (!highlights || highlights.length === 0) {
             throw new Error(t("No highlights found in the current file."));
         }
 
         // 生成导出内容
-        const content = await this.generateExportContent(sourceFile, highlights);
+        let content = await this.generateExportContent(sourceFile, highlights);
+
+        // 如果配置了添加到 Obsidian 属性
+        content = `---\nsum:\n---\n\n${content}`;
 
         // 获取导出路径并创建文件
         const hiNotePlugin = this.getPluginInstance();
         const exportPath = hiNotePlugin?.settings?.export?.exportPath || '';
-        const fileName = `${sourceFile.basename} - HiNote ${window.moment().format("YYYYMMDDHHmmss")}`;
-        
+        const fileName = `${sourceFile.basename}sum`;
+
         return await this.createExportFile(fileName, content, exportPath);
     }
 

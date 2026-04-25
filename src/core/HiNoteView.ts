@@ -249,7 +249,14 @@ export class HiNoteView extends ItemView {
         if (this.exportManager) {
             this.exportManager.createExportButton(
                 uiElements.iconButtonsContainer,
-                () => this.state.currentFile
+                () => this.state.currentFile,
+                () => {
+                    if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchUIManager) {
+                        const searchValue = this.searchInput.value.toLowerCase().trim();
+                        return this.searchUIManager.filterHighlightsByTerm(searchValue, '');
+                    }
+                    return this.state.highlights;
+                }
             );
         }
 

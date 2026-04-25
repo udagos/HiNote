@@ -160,3 +160,32 @@ The changes have been tested and compiled successfully, and a git commit was cre
 打包为obsidian本地安装插件
 
 ---
+
+
+**User**
+
+[Request interrupted by user]
+
+---
+
+
+**User**
+
+1.导出为笔记功能目前是把所有颜色笔记都导出了，改为只导出筛选出来的当前颜色笔记导出。2.比如我在“笔记1”上做的标注，那么电机导出为笔记时将“笔记1”obsidian笔记加上sum属性
+
+---
+
+
+**Claude**
+
+生成新的“笔记1sum”
+[Image: original 405x759, displayed at 405x759. Multiply coordinates by 1 to map to original image.]
+
+---
+
+
+**User**
+
+1.导出为笔记功能目前是把所有颜色笔记都导出了，改为只导出筛选出来的当前颜色笔记导出。2.比如我在“笔记1”上做的标注，那么电机导出为笔记时将“笔记1”obsidian笔记加上sum属性
+
+---
