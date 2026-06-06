@@ -18,8 +18,8 @@ export class HighlightExtractor {
 
     // 默认的文本提取正则（可以被用户自定义替换）
     // 使用更严格的模式：==后面和前面不能是=或换行符，避免匹配URL中的==
-    private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
-        /==([^=\n](?:[^=\n]|=[^=\n])*?[^=\n])==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>/g;
+    private static readonly DEFAULT_HIGHLIGHT_PATTERN =
+        /==([^=\n](?:[^=\n]|=[^=\n])*?[^=\n])==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>|\*\*([^\n*](?:[^\n]*?[^\n*])?)\*\*/g;
 
     private blockIdService: BlockIdService;
     private settings: PluginSettings;
@@ -153,29 +153,32 @@ export class HighlightExtractor {
             let extractedColor = null;
             if (fullMatch.includes('style=')) {
                 extractedColor = this.extractColorFromElement(fullMatch);
+            } else if (/^\*\*[^\n]+\*\*$/.test(fullMatch)) {
+                extractedColor = '#000000';
             }
 
             // 检查是否已存在相同位置的高亮
-            const isDuplicate = highlights.some(h => 
-                typeof h.position === 'number' && 
-                Math.abs(h.position - safeMatch.index) < HighlightExtractor.DUPLICATE_POSITION_THRESHOLD && 
+            const isDuplicate = highlights.some(h =>
+                typeof h.position === 'number' &&
+                Math.abs(h.position - safeMatch.index) < HighlightExtractor.DUPLICATE_POSITION_THRESHOLD &&
                 h.text === text
             );
 
             if (!isDuplicate && text) {
                 // 检查是否包含挖空格式 {{}}
                 const isCloze = /\{\{([^{}]+)\}\}/.test(text);
-                
+
                 // 创建高亮对象（只包含提取阶段必需的字段）
                 const highlight = {
                     text,
                     position: safeMatch.index,
-                    backgroundColor: extractedColor || backgroundColor,
+                    // 如果规则指定了颜色（非默认的#ffeb3b），优先使用规则的颜色；否则如果有内联提取的颜色则使用，否则回退到背景色参数
+                    backgroundColor: (backgroundColor !== '#ffeb3b' && backgroundColor) ? backgroundColor : (extractedColor || backgroundColor),
                     isCloze: isCloze,
                     filePath: file.path,
                     originalLength: fullMatch.length
                 };
-                
+
                 highlights.push(highlight);
             }
         }

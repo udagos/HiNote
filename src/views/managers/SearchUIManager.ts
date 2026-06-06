@@ -23,6 +23,7 @@ export class SearchUIManager {
     private uiHelper: SearchUIHelper;
     private searchService: SearchService;
     private colorTagsContainer: HTMLElement | undefined;
+    private handleRegexRulesUpdated = () => this.updateColorTags();
 
     // 防抖时间配置
     private readonly localSearchDebounceTime = 200; // 本地搜索防抖时间（毫秒）
@@ -73,25 +74,45 @@ export class SearchUIManager {
             return;
         }
 
-        // 收集所有颜色
-        const colors = new Set<string>();
+        // 收集所有颜色和名称
+        const colors = new Map<string, string>();
         highlights.forEach(h => {
             if (h.backgroundColor) {
-                colors.add(h.backgroundColor);
+                // 标准化颜色字符串以进行比较，例如去除多余空格
+                const normalizeColor = (c: string) => c.replace(/\s+/g, '').toLowerCase();
+                const normalizedBg = normalizeColor(h.backgroundColor);
+
+                // 如果能找到对应的正则规则并且有名字，就使用该名字，否则为空
+                const rule = this.plugin.settings.regexRules.find((r: any) =>
+                    r.color && normalizeColor(r.color) === normalizedBg
+                );
+
+                colors.set(h.backgroundColor, rule?.colorName || '');
             }
         });
 
         // 更新容器
         this.colorTagsContainer.empty();
         if (colors.size > 0 && this.colorTagsContainer) {
-            colors.forEach(color => {
+            colors.forEach((name, color) => {
                 const colorTag = this.colorTagsContainer!.createEl("div", {
                     cls: "highlight-color-tag",
                     attr: {
-                        'title': `按颜色搜索`
+                        'title': name ? `Search by color: ${name}` : `Search by color`
                     }
                 });
-                colorTag.style.backgroundColor = color;
+
+                const colorSpan = colorTag.createEl("span", {
+                    cls: "highlight-color-tag-color"
+                });
+                colorSpan.style.backgroundColor = color;
+
+                if (name) {
+                    colorTag.createEl("span", {
+                        cls: "highlight-color-tag-name",
+                        text: name
+                    });
+                }
 
                 colorTag.addEventListener("click", (e) => {
                     e.preventDefault();
@@ -125,6 +146,7 @@ export class SearchUIManager {
         
         // 添加搜索输入事件
         this.searchInput.addEventListener('input', this.handleSearchInputWithDebounce);
+        window.addEventListener('hinote-regex-rules-updated', this.handleRegexRulesUpdated);
     }
     
     /**
@@ -135,6 +157,7 @@ export class SearchUIManager {
             window.clearTimeout(this.searchDebounceTimer);
             this.searchDebounceTimer = null;
         }
+        window.removeEventListener('hinote-regex-rules-updated', this.handleRegexRulesUpdated);
         this.uiHelper.destroy();
     }
     
@@ -225,6 +248,18 @@ export class SearchUIManager {
         return this.searchInput.value.trim();
     }
     
+    /**
+     * 获取当前过滤后的高亮列表
+     */
+    getCurrentFilteredHighlights(): HighlightInfo[] {
+        if (!this.hasSearchTerm()) {
+            return this.getHighlightsCallback();
+        }
+        const searchInput = this.searchInput.value.trim();
+        const { searchTerm, searchType } = this.searchService.parseSearchInput(searchInput);
+        return this.searchService.filterHighlights(this.getHighlightsCallback(), searchTerm, searchType, this.getCurrentFileCallback());
+    }
+
     /**
      * 检查是否有搜索内容
      */

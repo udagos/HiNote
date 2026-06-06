@@ -3334,10 +3334,22 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
 .regex-rule-item {
     display: grid;
-    grid-template-columns: 100px 2fr 80px 30px 40px;
+    grid-template-columns: 100px 2fr 230px 30px 40px;
     gap: 10px;
     margin-bottom: 10px;
     align-items: center;
+}
+
+/* 颜色输入框容器 */
+.regex-rule-item > div:nth-child(3) {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* 颜色输入框基础样式 */
+.regex-rule-item .color-input {
+    width: 70px;
 }
 
 /* 开关样式调整 */
@@ -3367,9 +3379,10 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     margin-bottom: 10px;
 }
 
-/* 颜色输入框样式 */
-.regex-rule-item .color-input {
-    width: 80px;
+/* 颜色名称输入框样式 */
+.regex-rule-item .color-name-input {
+    width: 140px;
+    margin-left: 8px;
 }
 
 /* 模态框样式 */
@@ -4602,14 +4615,26 @@ border-color: var(--interactive-accent);
 
 /* 高亮颜色标签 */
 .highlight-color-tag {
-    width: 14px;
-    height: 14px;
+    display: inline-flex;
+    align-items: center;
     border-radius: 4px;
     cursor: pointer;
     border: 1px solid var(--background-modifier-border);
     transition: transform 0.1s ease;
+    overflow: hidden;
+}
+
+.highlight-color-tag-color {
+    width: 14px;
+    height: 14px;
+}
+
+.highlight-color-tag-name {
+    font-size: 11px;
+    padding: 0 6px 0 4px;
+    color: var(--text-muted);
 }
 
 .highlight-color-tag:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
 }

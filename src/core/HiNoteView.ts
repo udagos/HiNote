@@ -247,16 +247,21 @@ export class HiNoteView extends ItemView {
 
         // 使用 ExportManager 创建导出按钮
         if (this.exportManager) {
+            const getFilteredHighlights = () => {
+                if (this.searchUIManager) {
+                    return this.searchUIManager.getCurrentFilteredHighlights();
+                }
+                return this.state.highlights;
+            };
+
             this.exportManager.createExportButton(
                 uiElements.iconButtonsContainer,
                 () => this.state.currentFile,
-                () => {
-                    if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchUIManager) {
-                        const searchValue = this.searchInput.value.toLowerCase().trim();
-                        return this.searchUIManager.filterHighlightsByTerm(searchValue, '');
-                    }
-                    return this.state.highlights;
-                }
+                getFilteredHighlights
+            );
+            this.exportManager.createProgressiveSummaryExportButton(
+                uiElements.iconButtonsContainer,
+                () => this.state.currentFile
             );
         }
 
@@ -1103,8 +1108,7 @@ export class HiNoteView extends ItemView {
         // 检查搜索框是否有内容
         if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchUIManager) {
             // 如果有搜索内容，使用搜索管理器过滤
-            const searchValue = this.searchInput.value.toLowerCase().trim();
-            const filteredHighlights = this.searchUIManager.filterHighlightsByTerm(searchValue, '');
+            const filteredHighlights = this.searchUIManager.getCurrentFilteredHighlights();
             this.renderHighlights(filteredHighlights);
         } else {
             // 如果没有搜索内容，直接渲染所有高亮

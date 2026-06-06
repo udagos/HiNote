@@ -12,6 +12,7 @@ import { t } from "../../i18n";
  */
 export class ExportManager {
     private exportButton: HTMLElement | null = null;
+    private progressiveSummaryExportButton: HTMLElement | null = null;
 
     constructor(
         private app: App,
@@ -46,6 +47,32 @@ export class ExportManager {
     }
 
     /**
+     * 创建渐进摘要导出按钮
+     * @param container 按钮容器
+     * @param getCurrentFile 获取当前文件的回调
+     * @param getFilteredHighlights 获取当前展示的过滤后高亮回调
+     */
+    createProgressiveSummaryExportButton(
+        container: HTMLElement,
+        getCurrentFile: () => TFile | null,
+        getFilteredHighlights?: () => HighlightInfo[]
+    ): HTMLElement {
+        this.progressiveSummaryExportButton = container.createEl("div", {
+            cls: "highlight-icon-button"
+        });
+
+        setIcon(this.progressiveSummaryExportButton, "layers");
+        this.progressiveSummaryExportButton.setAttribute("aria-label", t("Export progressive summary"));
+
+        this.progressiveSummaryExportButton.addEventListener("click", async () => {
+            const filteredHighlights = getFilteredHighlights ? getFilteredHighlights() : undefined;
+            await this.handleProgressiveSummaryExportClick(getCurrentFile(), filteredHighlights);
+        });
+
+        return this.progressiveSummaryExportButton;
+    }
+
+    /**
      * 处理导出按钮点击
      * @param currentFile 当前文件
      * @param filteredHighlights 当前过滤出的高亮列表（如果有）
@@ -65,6 +92,28 @@ export class ExportManager {
             await leaf.openFile(newFile);
         } catch (error) {
             new Notice(t("Failed to export highlights: ") + error.message);
+        }
+    }
+
+    /**
+     * 处理渐进摘要导出按钮点击
+     * @param currentFile 当前文件
+     * @param filteredHighlights 当前过滤出的高亮列表（如果有）
+     */
+    private async handleProgressiveSummaryExportClick(currentFile: TFile | null, filteredHighlights?: HighlightInfo[]): Promise<void> {
+        if (!currentFile) {
+            new Notice(t("Please open a file first."));
+            return;
+        }
+
+        try {
+            const newFile = await this.exportService.exportProgressiveSummaryToNote(currentFile, filteredHighlights);
+            new Notice(t("Successfully exported progressive summary to: ") + newFile.path);
+
+            const leaf = this.app.workspace.getLeaf();
+            await leaf.openFile(newFile);
+        } catch (error) {
+            new Notice(t("Failed to export progressive summary: ") + error.message);
         }
     }
 
@@ -91,6 +140,10 @@ export class ExportManager {
         if (this.exportButton) {
             this.exportButton.remove();
             this.exportButton = null;
+        }
+        if (this.progressiveSummaryExportButton) {
+            this.progressiveSummaryExportButton.remove();
+            this.progressiveSummaryExportButton = null;
         }
     }
 }

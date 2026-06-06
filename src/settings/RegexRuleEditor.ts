@@ -107,6 +107,16 @@ export class RegexRuleEditor {
         this.saveRules();
       }
     });
+
+    // 颜色名称输入框
+    const colorNameInput = new TextComponent(colorContainer);
+    colorNameInput.setPlaceholder(t('Color name (e.g. Important)'));
+    colorNameInput.setValue(rule.colorName || '');
+    colorNameInput.inputEl.addClass('color-name-input');
+    colorNameInput.onChange(value => {
+      rule.colorName = value.trim();
+      this.saveRules();
+    });
     
     // 删除图标
     const deleteContainer = ruleContainer.createDiv({ cls: 'regex-rule-delete' });
@@ -135,5 +145,6 @@ export class RegexRuleEditor {
   private async saveRules() {
     this.plugin.settings.regexRules = this.rules;
     await this.plugin.saveSettings();
+    window.dispatchEvent(new CustomEvent('hinote-regex-rules-updated'));
   }
 }

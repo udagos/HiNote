@@ -23,7 +23,7 @@ export class SearchService {
      */
     parseSearchInput(searchInput: string): { searchTerm: string; searchType: string } {
         const normalizedInput = searchInput.toLowerCase().trim();
-        
+
         const isGlobalSearch = normalizedInput.startsWith('all:');
         const isHiCardSearch = normalizedInput.startsWith('hicard:');
         const isCommentSearch = normalizedInput.startsWith('comment:');
@@ -47,9 +47,9 @@ export class SearchService {
             searchTerm = normalizedInput.substring(5).trim();
         } else if (isColorSearch) {
             searchType = 'color';
-            searchTerm = normalizedInput.substring(6).trim();
+            searchTerm = searchInput.substring(6).trim(); // 使用原始输入以防颜色代码被小写破坏，虽然颜色通常不区分大小写
         }
-        
+
         return { searchTerm, searchType };
     }
     
@@ -178,13 +178,24 @@ export class SearchService {
             return highlights;
         }
 
+        // The searchTerm might be a color code like '#ffeb3b' or a color name like '1'
         const lowerSearchTerm = searchTerm.toLowerCase();
+
+        // Find if this search term matches any color name in the settings
+        const matchingRule = this.plugin.settings.regexRules.find((r: any) =>
+            r.colorName && r.colorName.toLowerCase() === lowerSearchTerm
+        );
+
+        // If it matches a name, use the rule's color for filtering instead
+        const colorToSearch = matchingRule && matchingRule.color ? matchingRule.color : searchTerm;
+
+        const normalizedSearchColor = colorToSearch.replace(/\s+/g, '').toLowerCase();
 
         return highlights.filter(highlight => {
             if (!highlight.backgroundColor) {
                 return false;
             }
-            return highlight.backgroundColor.toLowerCase() === lowerSearchTerm;
+            return highlight.backgroundColor.replace(/\s+/g, '').toLowerCase() === normalizedSearchColor;
         });
     }
 

@@ -186,6 +186,13 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             pattern: '<span[^>]*>([\\s\\S]*?)</span>',
             color: '#ffeb3b',
             enabled: true
+        },
+        {
+            id: 'default-bold',
+            name: 'Bold format',
+            pattern: '\\*\\*([^\\n*](?:[^\\n]*?[^\\n*])?)\\*\\*',
+            color: '#000000',
+            enabled: true
         }
     ],
     ai: {
@@ -279,6 +286,7 @@ export interface RegexRule {
   name: string;       // 规则名称
   pattern: string;    // 正则表达式
   color: string;      // 高亮颜色
+  colorName?: string; // 颜色名称
   enabled: boolean;   // 是否启用
 }
 

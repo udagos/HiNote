@@ -29,6 +29,7 @@ export default class CommentPlugin extends Plugin {
 		// 加载设置
 		const loadedData = await this.loadData();
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+		this.ensureDefaultRegexRules();
 
 		// 将 html2canvas 添加到全局对象（轻量级操作）
 		(window as Window & typeof globalThis & { html2canvas?: typeof html2canvas }).html2canvas = html2canvas;
@@ -85,6 +86,16 @@ export default class CommentPlugin extends Plugin {
 		}
 	}
 
+	private ensureDefaultRegexRules() {
+		const defaultBoldRule = DEFAULT_SETTINGS.regexRules.find(rule => rule.id === 'default-bold');
+		const existingBoldRule = this.settings.regexRules?.find(rule => rule.id === 'default-bold');
+		if (defaultBoldRule && !existingBoldRule) {
+			this.settings.regexRules = [...(this.settings.regexRules || []), { ...defaultBoldRule }];
+		} else if (existingBoldRule && existingBoldRule.color === '#ffeb3b') {
+			existingBoldRule.color = '#000000';
+		}
+	}
+
 	async saveSettings() {
         // 确保基础设置存在
         if (!this.settings) {
@@ -103,6 +114,7 @@ export default class CommentPlugin extends Plugin {
         if (!this.settings.regexRules || !Array.isArray(this.settings.regexRules)) {
             this.settings.regexRules = [...DEFAULT_SETTINGS.regexRules];
         }
+        this.ensureDefaultRegexRules();
 
         // 确保 AI 和导出设置存在
         this.settings.ai = this.settings.ai || { ...DEFAULT_SETTINGS.ai };

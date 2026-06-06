@@ -31,28 +31,34 @@ export class ExportService {
      */
     private async createExportFile(fileName: string, content: string, exportPath: string): Promise<TFile> {
         // 如果设置了导出路径，确保目录存在
-        let fullPath = fileName;
+        let basePath = "";
         if (exportPath) {
             // 确保目录存在
             const folderPath = this.app.vault.getAbstractFileByPath(exportPath);
             if (!folderPath) {
                 await this.app.vault.createFolder(exportPath);
             }
-            fullPath = `${exportPath}/${fileName}`;
+            basePath = exportPath;
+        }
+
+        let fullPath = basePath ? `${basePath}/${fileName}` : fileName;
+        let finalPath = `${fullPath}.md`;
+        let suffix = 0;
+
+        // 自动添加后缀直到找到一个不重复的文件名
+        while (this.app.vault.getAbstractFileByPath(finalPath)) {
+            suffix++;
+            finalPath = `${fullPath}_${suffix}.md`;
         }
 
         // 创建新文件
         try {
             const newFile = await this.app.vault.create(
-                `${fullPath}.md`,
+                finalPath,
                 content
             );
             return newFile;
         } catch (error) {
-            // 处理文件已存在的情况
-            if (error.message && error.message.includes("already exists")) {
-                throw new Error(t("Export file already exists. Please try again in a moment."));
-            }
             // 处理其他文件创建错误
             throw new Error(t("Failed to create export file: ") + error.message);
         }
@@ -133,10 +139,7 @@ export class ExportService {
         let highlights = await this.getFileHighlights(sourceFile);
 
         // 如果有过滤条件，则根据条件筛选需要导出的高亮
-        if (filteredHighlights && filteredHighlights.length > 0) {
-            const filteredIds = new Set(filteredHighlights.map(h => h.id));
-            highlights = highlights.filter(h => filteredIds.has(h.id));
-        }
+        highlights = this.filterHighlightsForExport(highlights, filteredHighlights);
 
         if (!highlights || highlights.length === 0) {
             throw new Error(t("No highlights found in the current file."));
@@ -154,6 +157,170 @@ export class ExportService {
         const fileName = `${sourceFile.basename}sum`;
 
         return await this.createExportFile(fileName, content, exportPath);
+    }
+
+    /**
+     * 导出当前文件的渐进摘要
+     */
+    async exportProgressiveSummaryToNote(sourceFile: TFile, filteredHighlights?: HighlightInfo[]): Promise<TFile> {
+        let highlights = await this.getFileHighlights(sourceFile);
+        highlights = this.filterHighlightsForExport(highlights, filteredHighlights);
+
+        if (!highlights || highlights.length === 0) {
+            throw new Error(t("No highlights found in the current file."));
+        }
+
+        const sourceContent = await this.app.vault.read(sourceFile);
+        const summaryContent = this.generateProgressiveSummaryContent(sourceContent, highlights);
+        const content = `---\nsum:\n---\n\n${summaryContent}`;
+
+        const hiNotePlugin = this.getPluginInstance();
+        const exportPath = hiNotePlugin?.settings?.export?.exportPath || '';
+        const fileName = `${sourceFile.basename}渐进摘要`;
+
+        return await this.createExportFile(fileName, content, exportPath);
+    }
+
+    /**
+     * 根据当前过滤结果筛选导出高亮
+     */
+    private filterHighlightsForExport(highlights: HighlightInfo[], filteredHighlights?: HighlightInfo[]): HighlightInfo[] {
+        if (filteredHighlights === undefined) {
+            return highlights;
+        }
+
+        return highlights.filter(h => {
+            return filteredHighlights.some(fh => {
+                if (h.id && fh.id && h.id === fh.id) return true;
+                if (h.position === fh.position && h.text === fh.text) return true;
+                return false;
+            });
+        });
+    }
+
+    /**
+     * 生成渐进摘要内容
+     */
+    private generateProgressiveSummaryContent(sourceContent: string, highlights: HighlightInfo[]): string {
+        const lines: string[] = [];
+        const layer1Text = this.stripHighlightWrappers(sourceContent).trim();
+        const layer2Items = this.extractMarkdownMatches(sourceContent, /\*\*([\s\S]*?)\*\*/g);
+        const layer3Items = this.extractMarkdownMatches(sourceContent, /==([\s\S]*?)==/g);
+        const coloredHighlights = highlights
+            .filter(highlight => !highlight.isVirtual && highlight.backgroundColor && !this.isBoldHighlight(sourceContent, highlight))
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        const colorLevelMap = this.getHiNoteColorLevelMap();
+        const highlightsByLevel = new Map<number, HighlightInfo[]>();
+
+        for (const highlight of coloredHighlights) {
+            const color = this.normalizeColor(highlight.backgroundColor || '');
+            const level = colorLevelMap.get(color);
+            if (!level) continue;
+            const levelHighlights = highlightsByLevel.get(level) || [];
+            levelHighlights.push(highlight);
+            highlightsByLevel.set(level, levelHighlights);
+        }
+
+        lines.push("#### 第一层：原文");
+        lines.push(layer1Text);
+        lines.push("");
+        lines.push("#### 第二层：重点摘要");
+        this.appendBulletLines(lines, layer2Items.map(item => `**${item}**`));
+        lines.push("");
+        lines.push("#### 第三层：高亮摘要");
+        this.appendBulletLines(lines, layer3Items);
+        lines.push("");
+
+        const levels = Array.from(highlightsByLevel.keys()).sort((a, b) => a - b);
+        if (levels.length === 0) {
+            lines.push("#### 第四层：HiNote 颜色等级 1");
+            lines.push("（无）");
+            lines.push("");
+        } else {
+            for (const level of levels) {
+                lines.push(`#### 第${this.toChineseNumber(level + 3)}层：HiNote 颜色等级 ${level}`);
+                this.appendBulletLines(lines, (highlightsByLevel.get(level) || []).map(highlight => this.stripHtmlTags(highlight.text || '')));
+                lines.push("");
+            }
+        }
+
+        lines.push("#### 最后层：总结");
+        lines.push("总结：");
+
+        return lines.join("\n");
+    }
+
+    /**
+     * 获取 HiNote 颜色等级映射
+     */
+    private getHiNoteColorLevelMap(): Map<string, number> {
+        const hiNotePlugin = this.getPluginInstance();
+        const rules = (hiNotePlugin?.settings?.regexRules || []).filter((rule: any) => rule.enabled && rule.color);
+        const colorLevelMap = new Map<string, number>();
+
+        for (const rule of rules) {
+            const level = Number(rule.colorName);
+            if (!Number.isInteger(level) || level <= 0) continue;
+            colorLevelMap.set(this.normalizeColor(rule.color), level);
+        }
+
+        return colorLevelMap;
+    }
+
+    private stripHighlightWrappers(content: string): string {
+        return content
+            .replace(/<mark\b[^>]*>([\s\S]*?)<\/mark>/gi, (_, text) => this.stripHtmlTags(text))
+            .replace(/<span\b[^>]*>([\s\S]*?)<\/span>/gi, (_, text) => this.stripHtmlTags(text))
+            .replace(/\*\*([\s\S]*?)\*\*/g, '$1')
+            .replace(/==([\s\S]*?)==/g, '$1');
+    }
+
+    private stripHtmlTags(text: string): string {
+        return text
+            .replace(/<mark\b[^>]*>([\s\S]*?)<\/mark>/gi, (_, innerText) => this.stripHtmlTags(innerText))
+            .replace(/<span\b[^>]*>([\s\S]*?)<\/span>/gi, (_, innerText) => this.stripHtmlTags(innerText))
+            .replace(/<[^>]+>/g, '')
+            .trim();
+    }
+
+    private extractMarkdownMatches(content: string, pattern: RegExp): string[] {
+        const items: string[] = [];
+        let match: RegExpExecArray | null;
+        while ((match = pattern.exec(content)) !== null) {
+            const text = this.stripHtmlTags(match[1] || '');
+            if (text) {
+                items.push(text);
+            }
+        }
+        return items;
+    }
+
+    private appendBulletLines(lines: string[], items: string[]): void {
+        const validItems = items.filter(item => item.trim() !== '');
+        if (validItems.length === 0) {
+            lines.push("（无）");
+            return;
+        }
+
+        for (const item of validItems) {
+            lines.push(`- ${item}`);
+        }
+    }
+
+    private normalizeColor(color: string): string {
+        return color.replace(/\s+/g, '').toLowerCase();
+    }
+
+    private isBoldHighlight(sourceContent: string, highlight: HighlightInfo): boolean {
+        if (typeof highlight.position !== 'number') {
+            return false;
+        }
+        return sourceContent.slice(highlight.position, highlight.position + 2) === '**';
+    }
+
+    private toChineseNumber(value: number): string {
+        const numbers = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+        return numbers[value] || String(value);
     }
 
     /**
